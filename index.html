@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Smart Bus Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* VOICE: a shipped student transit app, calm and quick to read while walking
+   IDEA: a campus bus route board in your pocket
+   PICTURE: the app itself in a phone frame; the live route line with moving buses
+   COLOUR and TYPE: UiTM purple field, gold accent, traffic-light occupancy; Manrope
+   LAYOUT: phone frame centred on wide screens, full-bleed on phones; bottom tab bar */
+:root{color-scheme:light dark;
+--bg:light-dark(#ece9f2,#0f0c16);--app:light-dark(#ffffff,#17131f);--card:light-dark(#f6f4fa,#221c2d);
+--ink:light-dark(#1b1626,#f1edf7);--mute:light-dark(#6b6478,#a59db3);--line:light-dark(#e2dcec,#342b42);
+--brand:#4b2a83;--brand2:light-dark(#4b2a83,#9d7fe0);--gold:#f2b705;
+--ok:#1f9d55;--mid:#d98e04;--full:#d64545}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Manrope,system-ui,sans-serif;overflow-x:clip}
+.wrap{min-height:100vh;display:grid;place-items:center;padding:24px 12px}
+.phone{width:min(400px,100%);height:min(820px,calc(100vh - 48px));min-height:640px;background:var(--app);border-radius:36px;
+ box-shadow:0 30px 60px -20px rgba(40,20,80,.35),0 0 0 10px light-dark(#1b1626,#000);display:flex;flex-direction:column;overflow:hidden;position:relative}
+@media(max-width:520px){.wrap{padding:0}.phone{border-radius:0;box-shadow:none;height:100vh;min-height:0;width:100%}}
+header{background:var(--brand);color:#fff;padding:18px 20px 16px}
+.top{display:flex;align-items:center;gap:10px}
+.logo{width:34px;height:34px;border-radius:10px;background:var(--gold);display:grid;place-items:center;flex:none}
+h1{font-size:19px;margin:0;line-height:1.1;font-weight:800}
+.sub{font-size:13px;opacity:.85}
+.demo{margin-left:auto;font-size:11px;font-weight:700;background:rgba(255,255,255,.16);padding:4px 8px;border-radius:99px;white-space:nowrap}
+.upd{display:flex;align-items:center;gap:6px;font-size:13px;margin-top:10px;opacity:.9}
+.dot{width:8px;height:8px;border-radius:50%;background:#5ee08f;box-shadow:0 0 0 3px rgba(94,224,143,.25)}
+main{flex:1;overflow-y:auto;padding:16px 16px 24px}
+h2{font-size:22px;line-height:1.15;margin:4px 0 12px;font-weight:800}
+h3{font-size:16px;margin:18px 0 8px;font-weight:700}
+.card{background:var(--card);border-radius:18px;padding:14px;margin-bottom:12px}
+.row{display:flex;align-items:center;gap:12px}
+.rt{width:38px;height:38px;border-radius:12px;color:#fff;display:grid;place-items:center;font-weight:800;flex:none}
+.eta{margin-left:auto;text-align:right;white-space:nowrap}
+.eta b{font-size:28px;line-height:1;font-weight:800}.eta span{font-size:13px;color:var(--mute)}
+.bus+.bus{border-top:1px solid var(--line);margin-top:10px;padding-top:10px}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;padding:2px 10px;border-radius:99px;white-space:nowrap}
+.pill i{width:8px;height:8px;border-radius:50%;background:currentColor}
+.o0{color:var(--ok);background:color-mix(in srgb,var(--ok) 14%,transparent)}
+.o1{color:var(--mid);background:color-mix(in srgb,var(--mid) 16%,transparent)}
+.o2{color:var(--full);background:color-mix(in srgb,var(--full) 14%,transparent)}
+.lost{color:var(--mute);background:color-mix(in srgb,var(--mute) 16%,transparent)}
+.small{font-size:13px;color:var(--mute)}
+button,select,input{font:inherit;color:inherit}
+.btn{min-height:44px;border:0;border-radius:14px;padding:10px 16px;font-weight:700;background:var(--brand);color:#fff;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--brand2);border:2px solid var(--brand2)}
+.btn:focus-visible,.chip:focus-visible,.tab:focus-visible,.stop:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
+.chip{min-height:44px;min-width:56px;border-radius:14px;border:2px solid var(--line);background:var(--app);font-weight:800;cursor:pointer;flex:none}
+.chip[aria-pressed=true]{border-color:transparent;color:#fff}
+.line{position:relative;margin:12px 0 0 8px;padding-left:28px}
+.line::before{content:"";position:absolute;left:9px;top:10px;bottom:10px;width:6px;border-radius:3px;background:var(--rc)}
+.st{position:relative;height:58px;display:flex;align-items:center}
+.st::before{content:"";position:absolute;left:-26px;width:14px;height:14px;border-radius:50%;background:var(--app);border:3px solid var(--rc)}
+.st span{font-weight:600;font-size:15px}
+.bm{position:absolute;left:-34px;width:30px;height:24px;border-radius:8px;display:grid;place-items:center;color:#fff;font-size:11px;font-weight:800;
+ box-shadow:0 4px 10px rgba(0,0,0,.25);transition:top .9s linear;z-index:2}
+.bm.lostb{background:var(--mute)!important}
+.loop{font-size:13px;color:var(--mute);margin-top:4px}
+.search{width:100%;min-height:48px;border-radius:14px;border:2px solid var(--line);background:var(--app);padding:10px 14px;font-size:16px}
+.stop{width:100%;text-align:left;min-height:52px;border:0;border-bottom:1px solid var(--line);background:transparent;display:flex;align-items:center;gap:10px;cursor:pointer;padding:8px 4px}
+.stop .tags{margin-left:auto;display:flex;gap:4px}
+.tag{font-size:11px;font-weight:800;color:#fff;border-radius:6px;padding:1px 6px}
+.alert{border-left:5px solid var(--gold)}
+.set{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:56px;border-bottom:1px solid var(--line)}
+.set select{min-height:44px;border-radius:12px;border:2px solid var(--line);background:var(--app);padding:0 10px;font-size:16px}
+.sw{width:52px;height:30px;border-radius:99px;border:0;background:var(--line);position:relative;cursor:pointer;flex:none}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:left .2s}
+.sw[aria-checked=true]{background:var(--brand2)}.sw[aria-checked=true]::after{left:25px}
+nav{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--line);background:var(--app)}
+.tab{min-height:62px;border:0;background:transparent;display:grid;place-items:center;gap:2px;font-size:12px;font-weight:700;color:var(--mute);cursor:pointer;padding:6px 0}
+.tab svg{width:24px;height:24px}
+.tab[aria-selected=true]{color:var(--brand2)}
+.toast{position:absolute;left:12px;right:12px;top:12px;background:var(--ink);color:var(--app);border-radius:16px;padding:12px 14px;font-weight:600;
+ transform:translateY(-140%);transition:transform .35s;z-index:9;display:flex;gap:10px;align-items:center}
+.toast.on{transform:none}
+.empty{text-align:center;color:var(--mute);padding:20px 8px}
+@media(prefers-reduced-motion:reduce){.bm,.toast,.sw::after{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap"><div class="phone">
+ <div class="toast" id="toast" role="status" aria-live="polite"></div>
+ <header>
+  <div class="top">
+   <div class="logo"><svg width="22" height="22" viewBox="0 0 24 24" fill="#4b2a83"><rect x="4" y="3" width="16" height="15" rx="3"/><rect x="6.5" y="6" width="11" height="5" rx="1" fill="#f2b705"/><circle cx="8" cy="15" r="1.4" fill="#f2b705"/><circle cx="16" cy="15" r="1.4" fill="#f2b705"/><rect x="6" y="18" width="3" height="3" rx="1"/><rect x="15" y="18" width="3" height="3" rx="1"/></svg></div>
+   <div><h1>Smart Bus Tracker</h1><div class="sub">UiTM Shah Alam campus buses</div></div>
+   <div class="demo">Prototype</div>
+  </div>
+  <div class="upd"><span class="dot" id="gdot"></span><span id="upd">Live · updated just now</span></div>
+ </header>
+ <main id="main" tabindex="-1"></main>
+ <nav role="tablist" aria-label="Main">
+  <button class="tab" role="tab" data-v="home" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Home</button>
+  <button class="tab" role="tab" data-v="live" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8.5 6H15a3 3 0 0 1 0 6H9a3 3 0 0 0 0 6h6.5"/></svg>Live</button>
+  <button class="tab" role="tab" data-v="stops" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>Stops</button>
+  <button class="tab" role="tab" data-v="alerts" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21h4"/></svg>Alerts</button>
+ </nav>
+</div></div>
+
+<script>
+{
+/* ---------- Route data (stops from the UiTM Shah Alam timetable, semester 20264) ---------- */
+const ROUTES = {
+ A:{name:'Kolej Mawar – Kolej Seroja',col:'#4b2a83',buses:5,stops:['Hentian Mawar (DC)','Hentian Pusat Kesihatan','Hentian Anggerik','Hentian Perindu','Hentian Seroja','Hentian FSKM','Hentian FKPM (Mascom)']},
+ B:{name:'Apartment Baiduri – Kampus',col:'#0f7c8c',buses:2,stops:['Hentian Baiduri','Hentian Unisel','Hentian Bas Seksyen 2','Hentian FSKM','Hentian FKPM (Mascom)','Hentian Mawar (DC)','Hentian Pusat Kesihatan','Hentian Anggerik','Hentian Perindu','Hentian Seroja']},
+ C:{name:'Seksyen 7 – Kampus',col:'#c2410c',buses:4,stops:['Hentian Pusat Komersial Sek. 7','Hentian Flat PKNS','Hentian Masjid Jalan Kristal','Hentian Palpero','Hentian Tasik','Hentian Hospital Shah Alam','Hentian Anggerik','Hentian Perindu','Hentian Seroja','Hentian FSKM','Hentian FKPM (Mascom)','Hentian Mawar (DC)','Hentian Pusat Kesihatan']},
+ E:{name:'Kolej Mawar – INTEC Seksyen 17',col:'#2563a8',buses:2,stops:['Hentian Mawar (DC)','Hentian Pusat Kesihatan','Hentian Anggerik','Hentian Perindu','Hentian Seroja','INTEC Seksyen 17','Hentian FSKM','Hentian FKPM (Mascom)']}
+};
+const SERVICE = [
+ {t:'Friday prayer break',d:'No campus bus service during Solat Jumaat on Fridays. Check the Friday timetable.'},
+ {t:'No night service',d:'Campus buses do not operate at night. Last departures are around 6.30 p.m.'}
+];
+const LEVEL = ['Empty','Moderate','Full'];
+
+/* ---------- State ---------- */
+const S = {view:'home',route:'A',fav:'Hentian FSKM',stop:null,q:'',lead:5,saver:false,lostDemo:false,speed:10,
+ alert:null,log:[],sim:8*60,snap:0,lastUpd:0};
+try{const s=JSON.parse(localStorage.getItem('sbt')||'{}');if(s.fav)S.fav=s.fav;if(s.lead)S.lead=s.lead;if('saver' in s)S.saver=s.saver}catch(e){}
+const save=()=>{try{localStorage.setItem('sbt',JSON.stringify({fav:S.fav,lead:S.lead,saver:S.saver}))}catch(e){}};
+
+/* Segment times (minutes) per route, deterministic */
+const SEG = {};
+for (const [k,r] of Object.entries(ROUTES)) SEG[k] = r.stops.map((_,i)=>2+((i*7+k.charCodeAt(0))%3));
+const loopT = k => SEG[k].reduce((a,b)=>a+b,0);
+
+/* Position of bus b on route k at sim time t (minutes) */
+function pos(k,b,t){
+ const T=loopT(k), off=b*T/ROUTES[k].buses;
+ let x=((t+off)%T+T)%T, i=0;
+ while(x>=SEG[k][i]){x-=SEG[k][i];i++}
+ return {i,p:x/SEG[k][i]};
+}
+function occ(k,b,t){const v=.45+.5*Math.sin(t/6+b*1.7+k.charCodeAt(0));return v<.3?0:v<.75?1:2}
+
+let snap = {};
+function takeSnap(){
+ const t=S.sim;
+ for(const k in ROUTES){snap[k]=[];for(let b=0;b<ROUTES[k].buses;b++){
+  const lost=S.lostDemo&&k==='A'&&b===1;
+  if(lost&&snap.__lost){snap[k].push(snap.__lost);continue}
+  const o={k,b,...pos(k,b,t),occ:occ(k,b,t),lost:false,at:t};
+  if(lost){o.lost=true;snap.__lost=o}
+  snap[k].push(o);
+ }}
+ if(!S.lostDemo)delete snap.__lost;
+ S.lastUpd=t;
+}
+/* ETA (minutes) from snapshot bus to stop index s */
+function eta(bus,s){
+ const k=bus.k,n=SEG[k].length;let m=(1-bus.p)*SEG[k][bus.i],j=(bus.i+1)%n;
+ while(j!==s){m+=SEG[k][j];j=(j+1)%n}
+ return m-(S.sim-bus.at)*(bus.lost?0:0);
+}
+function arrivals(stop){
+ const out=[];
+ for(const k in ROUTES){const si=ROUTES[k].stops.indexOf(stop);if(si<0)continue;
+  for(const bus of snap[k]){const m=eta(bus,si)-(S.sim-S.lastUpd);out.push({bus,m:Math.max(0,m)})}}
+ return out.sort((a,b)=>a.m-b.m);
+}
+const allStops=[...new Set(Object.values(ROUTES).flatMap(r=>r.stops))].sort();
+const routesAt=s=>Object.keys(ROUTES).filter(k=>ROUTES[k].stops.includes(s));
+
+/* ---------- Rendering ---------- */
+const $=s=>document.querySelector(s), main=$('#main');
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const pill=b=>b.lost?'<span class="pill lost"><i></i>No signal</span>':`<span class="pill o${b.occ}"><i></i>${LEVEL[b.occ]}</span>`;
+const fmt=m=>m<0.75?'<b>Now</b>':`<b>${Math.round(m)}</b> <span>min</span>`;
+
+function busRows(stop,limit){
+ const a=arrivals(stop).slice(0,limit);
+ if(!a.length)return '<div class="empty">No buses serve this stop.</div>';
+ return a.map(({bus,m})=>`<div class="bus row">
+  <div class="rt" style="background:${ROUTES[bus.k].col}">${bus.k}</div>
+  <div><div style="font-weight:700">Route ${bus.k} · Bus ${bus.b+1}</div>${pill(bus)}
+  ${bus.lost?`<div class="small">Last seen ${Math.round((S.sim-bus.at)*60)} s ago · showing scheduled time</div>`:''}</div>
+  <div class="eta">${fmt(m)}</div></div>`).join('');
+}
+function stopCard(stop,isFav){
+ const on=S.alert&&S.alert.stop===stop;
+ return `<div class="card">
+  <div class="row" style="margin-bottom:10px"><div><div class="small">${isFav?'Your stop':'Stop'}</div>
+  <div style="font-weight:800;font-size:18px">${esc(stop)}</div></div>
+  <button class="btn ghost" data-act="fav" data-s="${esc(stop)}" style="margin-left:auto;padding:8px 12px" aria-pressed="${S.fav===stop}">${S.fav===stop?'★ Saved':'☆ Save'}</button></div>
+  ${busRows(stop,isFav?3:6)}
+  <button class="btn" data-act="alert" data-s="${esc(stop)}" style="width:100%;margin-top:12px">${on?'Cancel arrival alert':`Alert me ${S.lead} min before the bus arrives`}</button>
+ </div>`;
+}
+const V = {
+ home(){
+  const full=arrivals(S.fav).slice(0,3).filter(x=>x.bus.occ===2&&!x.bus.lost).length;
+  return `<h2>Next buses</h2>${stopCard(S.fav,true)}
+  ${full?`<div class="card alert"><b>Heads up:</b> ${full} of the next 3 buses ${full>1?'are':'is'} full. Plan for a later bus.</div>`:''}
+  <h3>Service notices</h3>${SERVICE.map(s=>`<div class="card alert"><b>${s.t}</b><div class="small">${s.d}</div></div>`).join('')}`;
+ },
+ live(){
+  const r=ROUTES[S.route],n=r.stops.length,H=58;
+  const chips=Object.keys(ROUTES).map(k=>`<button class="chip" data-act="route" data-r="${k}" aria-pressed="${k===S.route}" style="${k===S.route?`background:${ROUTES[k].col}`:''}">${k}</button>`).join('');
+  const marks=snap[S.route].map(b=>{const y=(b.i+b.p)*H+17;const top=y>n*H-29?n*H-29:y;
+   return `<div class="bm ${b.lost?'lostb':''}" style="top:${top}px;background:${r.col}" title="Bus ${b.b+1}">${b.k}${b.b+1}</div>`}).join('');
+  return `<h2>Live map</h2><div class="chips" role="group" aria-label="Route">${chips}</div>
+  <div class="card" style="margin-top:12px"><div style="font-weight:800">Route ${S.route}: ${r.name}</div>
+  <div class="small">${r.buses} buses in service · loop of about ${loopT(S.route)} min</div>
+  <div class="line" style="--rc:${r.col}">${r.stops.map(s=>`<div class="st"><span>${esc(s)}</span></div>`).join('')}${marks}</div>
+  <div class="loop">↻ Returns to ${esc(r.stops[0])}</div></div>
+  <div class="small">Buses move down the line toward the next stop. Tap the Stops tab for arrival times.</div>`;
+ },
+ stops(){
+  if(S.stop)return `<button class="btn ghost" data-act="back" style="margin-bottom:12px">← All stops</button>${stopCard(S.stop,false)}`;
+  const list=allStops.filter(s=>s.toLowerCase().includes(S.q.toLowerCase()));
+  return `<h2>Bus stops</h2><input class="search" id="q" type="search" placeholder="Search stop, e.g. FSKM" value="${esc(S.q)}" aria-label="Search stops">
+  <div style="margin-top:8px">${list.map(s=>`<button class="stop" data-act="stop" data-s="${esc(s)}"><span style="font-weight:600">${esc(s)}</span>
+  <span class="tags">${routesAt(s).map(k=>`<span class="tag" style="background:${ROUTES[k].col}">${k}</span>`).join('')}</span></button>`).join('')||'<div class="empty">No stop matches your search.</div>'}</div>`;
+ },
+ alerts(){
+  const a=S.alert;
+  return `<h2>Alerts</h2>
+  <div class="card">${a?`<b>Arrival alert on</b><div class="small">${esc(a.stop)} · ${S.lead} min before the next bus</div>
+   <button class="btn ghost" data-act="alert" data-s="${esc(a.stop)}" style="margin-top:10px">Cancel</button>`:'<div class="small">No arrival alert set. Open a stop and tap “Alert me”.</div>'}</div>
+  <h3>Settings</h3>
+  <div class="set"><label for="lead">Alert me before arrival</label><select id="lead">${[2,5,10].map(v=>`<option value="${v}" ${v==S.lead?'selected':''}>${v} min</option>`).join('')}</select></div>
+  <div class="set"><div>Data &amp; battery saver<div class="small">Updates every 30 s instead of 10 s</div></div><button class="sw" role="switch" aria-checked="${S.saver}" data-act="saver" aria-label="Data and battery saver"></button></div>
+  <div class="set"><div>Demo: GPS signal loss<div class="small">Shows how the app reacts when Bus A2 loses signal</div></div><button class="sw" role="switch" aria-checked="${S.lostDemo}" data-act="lost" aria-label="Simulate GPS signal loss"></button></div>
+  <div class="set"><label for="spd">Demo speed</label><select id="spd">${[1,10,30].map(v=>`<option value="${v}" ${v==S.speed?'selected':''}>${v}×</option>`).join('')}</select></div>
+  <h3>Recent notifications</h3>${S.log.length?S.log.map(l=>`<div class="card"><b>${esc(l.t)}</b><div class="small">${esc(l.d)}</div></div>`).join(''):'<div class="empty">Nothing yet.</div>'}
+  <p class="small">Prototype for ENT600 · bus positions, arrival times and occupancy are simulated. Stops and routes follow the UiTM Shah Alam timetable.</p>`;
+ }
+};
+function render(keepFocus){
+ const f=keepFocus&&document.activeElement&&document.activeElement.id;
+ const pos0=f==='q'?document.activeElement.selectionStart:null;
+ main.innerHTML=V[S.view]();
+ if(f){const el=document.getElementById(f);if(el){el.focus();if(pos0!=null)el.setSelectionRange(pos0,pos0)}}
+ document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected',t.dataset.v===S.view));
+}
+function toast(msg){const t=$('#toast');t.innerHTML='🔔 '+esc(msg);t.classList.add('on');clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove('on'),4000)}
+
+/* ---------- Events ---------- */
+document.querySelector('nav').addEventListener('click',e=>{const b=e.target.closest('.tab');if(!b)return;S.view=b.dataset.v;S.stop=null;render();main.scrollTop=0});
+main.addEventListener('click',e=>{
+ const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act,s=b.dataset.s;
+ if(a==='route'){S.route=b.dataset.r}
+ if(a==='stop'){S.stop=s;main.scrollTop=0}
+ if(a==='back'){S.stop=null}
+ if(a==='fav'){S.fav=s;save();toast(`${s} saved as your stop`)}
+ if(a==='alert'){if(S.alert&&S.alert.stop===s){S.alert=null;toast('Arrival alert cancelled')}else{S.alert={stop:s,fired:{}};toast(`You will be alerted ${S.lead} min before a bus reaches ${s}`)}}
+ if(a==='saver'){S.saver=!S.saver;save()}
+ if(a==='lost'){S.lostDemo=!S.lostDemo;delete snap.__lost;takeSnap()}
+ render();
+});
+main.addEventListener('input',e=>{if(e.target.id==='q'){S.q=e.target.value;render(true)}});
+main.addEventListener('change',e=>{if(e.target.id==='lead'){S.lead=+e.target.value;save();render()}if(e.target.id==='spd'){S.speed=+e.target.value}});
+
+/* ---------- Clock ---------- */
+takeSnap();render();
+setInterval(()=>{
+ S.sim+=S.speed/60;                       // sim minutes per real second
+ const every=(S.saver?30:10)/60;           // GPS update interval in sim minutes
+ if(S.sim-S.lastUpd>=every)takeSnap();
+ const ago=Math.round((S.sim-S.lastUpd)*60);
+ $('#upd').textContent=`Live · updated ${ago<2?'just now':ago+' s ago'}${S.saver?' · saver on':''}`;
+ if(S.alert){for(const {bus,m} of arrivals(S.alert.stop)){const id=bus.k+bus.b;
+  if(!bus.lost&&m<=S.lead&&m>S.lead-1.5&&!S.alert.fired[id]){S.alert.fired[id]=1;
+   const msg=`Bus ${bus.k}${bus.b+1} reaches ${S.alert.stop} in ${Math.max(1,Math.round(m))} min · ${LEVEL[bus.occ]}`;
+   toast(msg);S.log.unshift({t:'Bus arriving',d:msg});S.log=S.log.slice(0,5)}
+  if(m>S.lead+1)delete S.alert.fired[id]}}
+ if(!(S.view==='stops'&&!S.stop)&&S.view!=='alerts')render();
+},1000);
+}
+</script>
+</body>
+</html>
