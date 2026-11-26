@@ -77,6 +77,12 @@ button,select,input{font:inherit;color:inherit}
 nav{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--line);background:var(--app)}
 .tab{min-height:62px;border:0;background:transparent;display:grid;place-items:center;gap:2px;font-size:12px;font-weight:700;color:var(--mute);cursor:pointer;padding:6px 0}
 .tab svg{width:24px;height:24px}
+.cm{padding:10px 0;border-top:1px solid var(--line)}
+.cm .meta{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--mute)}
+.ver{color:var(--ok);font-weight:700}
+.dtag{font-size:11px;font-weight:800;background:var(--gold);color:#1b1626;border-radius:99px;padding:1px 8px;margin-left:auto}
+.cinput{display:flex;gap:8px;margin-top:10px}
+.cinput input{flex:1;min-height:44px;border-radius:12px;border:2px solid var(--line);background:var(--app);padding:8px 12px;font-size:15px}
 .tab[aria-selected=true]{color:var(--brand2)}
 .toast{position:absolute;left:12px;right:12px;top:12px;background:var(--ink);color:var(--app);border-radius:16px;padding:12px 14px;font-weight:600;
  transform:translateY(-140%);transition:transform .35s;z-index:9;display:flex;gap:10px;align-items:center}
@@ -124,7 +130,7 @@ const LEVEL = ['Empty','Moderate','Full'];
 
 /* ---------- State ---------- */
 const S = {view:'home',route:'A',fav:'Hentian FSKM',stop:null,q:'',lead:5,saver:false,lostDemo:false,speed:10,
- alert:null,log:[],sim:8*60,snap:0,lastUpd:0};
+ alert:null,log:[],sim:8*60,snap:0,lastUpd:0,login:false,draft:'',mine:{}};
 try{const s=JSON.parse(localStorage.getItem('sbt')||'{}');if(s.fav)S.fav=s.fav;if(s.lead)S.lead=s.lead;if('saver' in s)S.saver=s.saver}catch(e){}
 const save=()=>{try{localStorage.setItem('sbt',JSON.stringify({fav:S.fav,lead:S.lead,saver:S.saver}))}catch(e){}};
 
@@ -185,6 +191,31 @@ function busRows(stop,limit){
   ${bus.lost?`<div class="small">Last seen ${Math.round((S.sim-bus.at)*60)} s ago · showing scheduled time</div>`:''}</div>
   <div class="eta">${fmt(m)}</div></div>`).join('');
 }
+/* ---------- Demo: live comments from verified students (planned feature) ---------- */
+function demoComments(stop){
+ const short=stop.replace('Hentian ','');
+ const h=[...stop].reduce((a,c)=>a+c.charCodeAt(0),0);
+ const rs=routesAt(stop), r1=rs[0]||'A', r2=rs[1]||r1;
+ const pool=[
+  `Bus ${r1} full when it reached ${short}, had to wait for the next one 😅`,
+  `Bus ${r2} just left ${short}, still quite empty`,
+  `Long queue at ${short} now, around 20 students waiting`,
+  `Bus ${r1} driver on break near ${short}, about 5 min delay`,
+  `ETA was accurate today, bus came right on time 👍`];
+ const mins=[2,6,11,18,25];
+ return [0,1,2].map(i=>({t:pool[(h+i)%pool.length],m:mins[i]+(h%3)}));
+}
+function commentBlock(stop){
+ const mine=(S.mine[stop]||[]).map(t=>({t,m:0,me:1}));
+ const list=[...mine,...demoComments(stop)];
+ return `<div class="card"><div class="row" style="margin-bottom:4px"><b>Live updates from students</b><span class="dtag">DEMO</span></div>
+  ${list.map(c=>`<div class="cm"><div>${esc(c.t)}</div><div class="meta"><span class="ver">✓ Verified UiTM student</span>· ${c.me?'just now (you)':c.m+' min ago'}</div></div>`).join('')}
+  ${S.login?`<div class="cinput"><input id="cmt" type="text" maxlength="120" placeholder="Share an update, e.g. bus is full" value="${esc(S.draft)}" aria-label="Write an update"><button class="btn" data-act="post" data-s="${esc(stop)}">Post</button></div>
+   <div class="small" style="margin-top:6px">Logged in with UiTM student account (demo) · <button data-act="logout" style="border:0;background:none;color:var(--brand2);font-weight:700;cursor:pointer;padding:0">Log out</button></div>`
+  :`<button class="btn ghost" data-act="login" style="width:100%;margin-top:10px">Log in with UiTM student account to post</button>
+   <div class="small" style="margin-top:6px">Viewing needs no login. Posting requires a student account to prevent misuse.</div>`}
+  <div class="small" style="margin-top:6px">Planned feature for the next version · comments shown are sample data.</div></div>`;
+}
 function stopCard(stop,isFav){
  const on=S.alert&&S.alert.stop===stop;
  return `<div class="card">
@@ -200,6 +231,7 @@ const V = {
   const full=arrivals(S.fav).slice(0,3).filter(x=>x.bus.occ===2&&!x.bus.lost).length;
   return `<h2>Next buses</h2>${stopCard(S.fav,true)}
   ${full?`<div class="card alert"><b>Heads up:</b> ${full} of the next 3 buses ${full>1?'are':'is'} full. Plan for a later bus.</div>`:''}
+  ${commentBlock(S.fav)}
   <h3>Service notices</h3>${SERVICE.map(s=>`<div class="card alert"><b>${s.t}</b><div class="small">${s.d}</div></div>`).join('')}`;
  },
  live(){
@@ -215,7 +247,7 @@ const V = {
   <div class="small">Buses move down the line toward the next stop. Tap the Stops tab for arrival times.</div>`;
  },
  stops(){
-  if(S.stop)return `<button class="btn ghost" data-act="back" style="margin-bottom:12px">← All stops</button>${stopCard(S.stop,false)}`;
+  if(S.stop)return `<button class="btn ghost" data-act="back" style="margin-bottom:12px">← All stops</button>${stopCard(S.stop,false)}${commentBlock(S.stop)}`;
   const list=allStops.filter(s=>s.toLowerCase().includes(S.q.toLowerCase()));
   return `<h2>Bus stops</h2><input class="search" id="q" type="search" placeholder="Search stop, e.g. FSKM" value="${esc(S.q)}" aria-label="Search stops">
   <div style="margin-top:8px">${list.map(s=>`<button class="stop" data-act="stop" data-s="${esc(s)}"><span style="font-weight:600">${esc(s)}</span>
@@ -237,7 +269,7 @@ const V = {
 };
 function render(keepFocus){
  const f=keepFocus&&document.activeElement&&document.activeElement.id;
- const pos0=f==='q'?document.activeElement.selectionStart:null;
+ const pos0=(f==='q'||f==='cmt')?document.activeElement.selectionStart:null;
  main.innerHTML=V[S.view]();
  if(f){const el=document.getElementById(f);if(el){el.focus();if(pos0!=null)el.setSelectionRange(pos0,pos0)}}
  document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected',t.dataset.v===S.view));
@@ -253,11 +285,15 @@ main.addEventListener('click',e=>{
  if(a==='back'){S.stop=null}
  if(a==='fav'){S.fav=s;save();toast(`${s} saved as your stop`)}
  if(a==='alert'){if(S.alert&&S.alert.stop===s){S.alert=null;toast('Arrival alert cancelled')}else{S.alert={stop:s,fired:{}};toast(`You will be alerted ${S.lead} min before a bus reaches ${s}`)}}
+ if(a==='login'){S.login=true;toast('Demo: signed in with UiTM student account')}
+ if(a==='logout'){S.login=false}
+ if(a==='post'){const t=S.draft.trim();if(t){(S.mine[s]=S.mine[s]||[]).unshift(t);S.draft='';toast('Update posted (demo)')}}
  if(a==='saver'){S.saver=!S.saver;save()}
  if(a==='lost'){S.lostDemo=!S.lostDemo;delete snap.__lost;takeSnap()}
  render();
 });
-main.addEventListener('input',e=>{if(e.target.id==='q'){S.q=e.target.value;render(true)}});
+main.addEventListener('input',e=>{if(e.target.id==='q'){S.q=e.target.value;render(true)}if(e.target.id==='cmt'){S.draft=e.target.value}});
+main.addEventListener('keydown',e=>{if(e.target.id==='cmt'&&e.key==='Enter'){const b=main.querySelector('[data-act=post]');if(b)b.click()}});
 main.addEventListener('change',e=>{if(e.target.id==='lead'){S.lead=+e.target.value;save();render()}if(e.target.id==='spd'){S.speed=+e.target.value}});
 
 /* ---------- Clock ---------- */
@@ -273,7 +309,7 @@ setInterval(()=>{
    const msg=`Bus ${bus.k}${bus.b+1} reaches ${S.alert.stop} in ${Math.max(1,Math.round(m))} min · ${LEVEL[bus.occ]}`;
    toast(msg);S.log.unshift({t:'Bus arriving',d:msg});S.log=S.log.slice(0,5)}
   if(m>S.lead+1)delete S.alert.fired[id]}}
- if(!(S.view==='stops'&&!S.stop)&&S.view!=='alerts')render();
+ if(!(S.view==='stops'&&!S.stop)&&S.view!=='alerts')render(true);
 },1000);
 }
 </script>
