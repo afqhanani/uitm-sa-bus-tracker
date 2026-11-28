@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Smart Bus Tracker</title>
+<title>Smart Campus Bus Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -27,7 +27,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Manrope,system
 header{background:var(--brand);color:#fff;padding:18px 20px 16px}
 .top{display:flex;align-items:center;gap:10px}
 .logo{width:34px;height:34px;border-radius:10px;background:var(--gold);display:grid;place-items:center;flex:none}
-h1{font-size:19px;margin:0;line-height:1.1;font-weight:800}
+h1{font-size:clamp(14px,4.3vw,19px);margin:0;line-height:1.1;font-weight:800;white-space:nowrap}
 .sub{font-size:13px;opacity:.85}
 .demo{margin-left:auto;font-size:11px;font-weight:700;background:rgba(255,255,255,.16);padding:4px 8px;border-radius:99px;white-space:nowrap}
 .upd{display:flex;align-items:center;gap:6px;font-size:13px;margin-top:10px;opacity:.9}
@@ -97,7 +97,7 @@ nav{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--
  <header>
   <div class="top">
    <div class="logo"><svg width="22" height="22" viewBox="0 0 24 24" fill="#4b2a83"><rect x="4" y="3" width="16" height="15" rx="3"/><rect x="6.5" y="6" width="11" height="5" rx="1" fill="#f2b705"/><circle cx="8" cy="15" r="1.4" fill="#f2b705"/><circle cx="16" cy="15" r="1.4" fill="#f2b705"/><rect x="6" y="18" width="3" height="3" rx="1"/><rect x="15" y="18" width="3" height="3" rx="1"/></svg></div>
-   <div><h1>Smart Bus Tracker</h1><div class="sub">UiTM Shah Alam campus buses</div></div>
+   <div><h1>Smart Campus Bus Tracker</h1><div class="sub">UiTM Shah Alam campus buses</div></div>
    <div class="demo">Prototype</div>
   </div>
   <div class="upd"><span class="dot" id="gdot"></span><span id="upd">Live · updated just now</span></div>
